@@ -98,10 +98,18 @@ def oscontainer_build(containers_storage, src, ref, image_name_and_tag,
 
         # We use /noentry to trick `podman create` into not erroring out
         # on a container with no cmd/entrypoint.  It won't actually be run.
-        config=['--entrypoint', '["/noentry"]',
-                '-l', OSCONTAINER_COMMIT_LABEL+'='+rev]
+        config=[
+            '--entrypoint', '["/noentry"]',
+            '-l', OSCONTAINER_COMMIT_LABEL+'='+rev,
+            '-l', 'org.opencontainers.image.revision='+rev,  # FIXME: ideally a redhat-coreos commit, if the resulting OSContainer hash is deterministic.  If not, the redhat-coreos commit, and I guess we just assume that a rebuild OSContainer hash would be close enough ;).
+            '-l', 'org.opencontainers.image.source=https://gitlab.cee.redhat.com/coreos/redhat-coreos',  # FIXME: ideally (a) public and (b) something from which the OS
+            '-l', 'org.opencontainers.image.url=https://github.com/openshift/os/',  # FIXME: or better RHCOS homepage?
+        ]
         if ostree_version is not None:
-            config += ['-l', 'version='+ostree_version]
+            config += [
+                '-l', 'version='+ostree_version,
+                '-l', 'org.opencontainers.image.version='+ostree_version,
+            ]
         run_verbose(['buildah', rootarg, 'config'] + config + [bid])
         print("Committing container...")
         iid = run_get_string(['buildah', rootarg, 'commit', bid, image_name_and_tag])
